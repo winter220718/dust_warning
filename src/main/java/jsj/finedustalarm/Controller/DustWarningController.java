@@ -4,52 +4,63 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.sun.tools.javac.Main;
 import jsj.finedustalarm.Entity.AlarmData;
-import jsj.finedustalarm.Entity.AlertGrade;
 import jsj.finedustalarm.Entity.DustAlarm;
+import jsj.finedustalarm.Entity.InspectionHistory;
 import jsj.finedustalarm.Service.DustWarningServiceImpl;
-import lombok.RequiredArgsConstructor;
-import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.sql.Array;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 
 @Controller
-@RequiredArgsConstructor
 public class DustWarningController {
 
     private final DustWarningServiceImpl dustWarningService;
-    boolean isAlarmed = false;
+    private boolean isAlarmed = false;
 
-    @RequestMapping("/*")
+    public DustWarningController(DustWarningServiceImpl dustWarningService) {
+        this.dustWarningService = dustWarningService;
+        getJsonData();
+    }
+
     public void getJsonData() {
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(Main.class.getClassLoader().getResource("find_dust_seoul.json").getPath()))) {
+        System.out.println("DustWarningController.getJsonData");
+        try (BufferedReader reader = new BufferedReader(new FileReader(Main.class.getClassLoader().getResource("Seoul_Dust_Report_March.json").getPath()))) {
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.registerModule(new JavaTimeModule());
             AlarmData[] alarmData = objectMapper.readValue(reader, AlarmData[].class);
 
-            int previousDay = LocalDateTime.parse(alarmData[0].getInspectDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH")).getDayOfYear();
-            LocalDateTime inspectDate;
+            int previousDay = getInspectDate(alarmData[0]).getDayOfYear();
+            LocalDateTime inspectDate, sameDate;
 
+            // 측정된 데이터가 없는 경우
+            for (int i = 0; i < alarmData.length; i++) {
+                inspectDate = getInspectDate(alarmData[i]);
+                if (alarmData[i].getPm10() == 0 && alarmData[i].getPm2_5() == 0) {
+                    for (int j = 0; j < alarmData.length; j++) {
+                        sameDate = getInspectDate(alarmData[j]);
+                        if (alarmData[i].getStationCode().equals(alarmData[j].getStationCode())
+                                && inspectDate.getDayOfYear() == sameDate.getDayOfYear()) {
+                            // 해당 일자의 점검 내역 insert
+                            reportInspection(alarmData[j]);
+                        }
+                    }
+                }
+            }
+
+            // 경보 발령 기준을 충족하는 경우
             for (int i = 1; i < alarmData.length; i++) {
-
-                inspectDate = LocalDateTime.parse(alarmData[i].getInspectDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH"));
+                inspectDate = getInspectDate(alarmData[i]);
 
                 if (((int) inspectDate.getDayOfYear() == previousDay)) {
                     if (isAlarmed) {
-                        // 경보가 울린 경우 나머지 시간은 건너뛴다
+                        // 경보가 이미 울렸으면 나머지 시간은 건너뛴다
                         continue;
                     }
                 } else {
-                    // 날짜가 바뀌면 리셋
                     previousDay = (int) inspectDate.getDayOfYear();
                     isAlarmed = false;
                 }
@@ -64,10 +75,24 @@ public class DustWarningController {
                     reportWarning(4, alarmData[i]);
                 }
             }
-        } catch (IOException e) {
+        } catch (
+                IOException e) {
             throw new RuntimeException(e);
         }
 
+    }
+
+    private static LocalDateTime getInspectDate(AlarmData alarmData) {
+        return LocalDateTime.parse(alarmData.getInspectDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH"));
+    }
+
+    private void reportInspection(AlarmData alarmData) {
+        InspectionHistory inspectionHistory = new InspectionHistory();
+        inspectionHistory.setInspectDate(alarmData.getInspectDate());
+        inspectionHistory.setStationCode(alarmData.getStationCode());
+        inspectionHistory.setFindDust(alarmData.getPm10()); // int형이라 null인 경우 자동으로 0 변환
+        inspectionHistory.setMicroDust(alarmData.getPm2_5());
+        dustWarningService.saveInspection(inspectionHistory);
     }
 
     private void reportWarning(int alertGrade, AlarmData alarmData) {
@@ -75,7 +100,6 @@ public class DustWarningController {
         dustAlarm.setAlertGrade(alertGrade);
         dustAlarm.setInspectDate(alarmData.getInspectDate());
         dustAlarm.setStationCode(alarmData.getStationCode());
-        // 초미세먼지경보
         isAlarmed = true;
         dustWarningService.saveDustAlarm(dustAlarm);
     }

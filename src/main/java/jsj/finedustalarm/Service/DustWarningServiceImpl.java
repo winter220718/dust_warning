@@ -7,7 +7,6 @@ import jsj.finedustalarm.Repository.InspectionHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DustWarningServiceImpl implements DustWarningService{
@@ -18,8 +17,6 @@ public class DustWarningServiceImpl implements DustWarningService{
     @Override
     public void saveDustAlarm(DustAlarm dustAlarm) {
         dustAlarmRepository.save(dustAlarm);
-        System.out.println("DustWarningServiceImpl.saveDustAlarm");
-        System.out.println("dustAlarm = " + dustAlarm);
     }
 
     @Override

@@ -3,24 +3,25 @@ package jsj.finedustalarm.Entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
-@Entity
+import java.time.LocalDateTime;
 
+@Entity
 @Data
+@IdClass(CompositeKeyClass.class)
 @Table(name = "DUST_ALARM_HISTORY")
 public class DustAlarm {
-    // 날짜
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "alert_seq")
-    @SequenceGenerator(name = "alert_seq", sequenceName = "ALERT_SEQ", allocationSize = 1)
-    @Column(name = "ALERT_SEQ")
-    private int alertSeq;
 
-    @Column(name = "STATION_CODE")
+    @Id
+    @Column(name = "INSPECT_DATE", nullable = false)
+    // 날짜
+    private String inspectDate;
+
+    @Id
+    @Column(name = "STATION_CODE", nullable = false)
+    // 측정소 코드
     private String stationCode;
 
-    @Column(name = "INSPECT_DATE")
-    private String inspectDate;
+    @Column(name = "ALERT_GRADE", nullable = false)
     // 등급
-    @Column(name = "ALERT_GRADE")
     private int alertGrade;
 }

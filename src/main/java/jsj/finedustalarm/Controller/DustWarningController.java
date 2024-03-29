@@ -88,7 +88,7 @@ public class DustWarningController {
 
     private void reportInspection(AlarmData alarmData) {
         InspectionHistory inspectionHistory = new InspectionHistory();
-        inspectionHistory.setInspectDate(alarmData.getInspectDate());
+        inspectionHistory.setInspectDate(getInspectDate(alarmData));
         inspectionHistory.setStationCode(alarmData.getStationCode());
         inspectionHistory.setFindDust(alarmData.getPm10()); // int형이라 null인 경우 자동으로 0 변환
         inspectionHistory.setMicroDust(alarmData.getPm2_5());
@@ -98,7 +98,7 @@ public class DustWarningController {
     private void reportWarning(int alertGrade, AlarmData alarmData) {
         DustAlarm dustAlarm = new DustAlarm();
         dustAlarm.setAlertGrade(alertGrade);
-        dustAlarm.setInspectDate(alarmData.getInspectDate());
+        dustAlarm.setInspectDate(getInspectDate(alarmData));
         dustAlarm.setStationCode(alarmData.getStationCode());
         isAlarmed = true;
         dustWarningService.saveDustAlarm(dustAlarm);

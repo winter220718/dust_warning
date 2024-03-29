@@ -14,7 +14,7 @@ public class DustAlarm {
     @Id
     @Column(name = "INSPECT_DATE", nullable = false)
     // 날짜
-    private String inspectDate;
+    private LocalDateTime inspectDate;
 
     @Id
     @Column(name = "STATION_CODE", nullable = false)

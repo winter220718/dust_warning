@@ -1,41 +1,11 @@
 package jsj.finedustalarm.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.tools.javac.Main;
-import jakarta.annotation.PostConstruct;
-import jsj.finedustalarm.Repository.DustWarningRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import jsj.finedustalarm.Entity.DustAlarm;
+import jsj.finedustalarm.Entity.InspectionHistory;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.util.List;
 
-@Service
-public class DustWarningService {
-
-    @PostConstruct
-    public void init() {
-        saveJson();
-    }
-
-    @Autowired
-    private DustWarningRepository dustWarningRepository;
-
-    public void saveJson() {
-        System.out.println("실행?");
-        try (BufferedReader reader = new BufferedReader(new FileReader(Main.class.getClassLoader().getResource("find_dust_seoul.json").getPath()))) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                // JSON 데이터를 객체로 변환
-//                InspectionHistory inspectionHistory = objectMapper.readValue(line, InspectionHistory.class);
-                // DB에 저장
-//                dustWarningRepository.save(inspectionHistory);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-//        return dustWarningRepository.save(entity);
-    }
+public interface DustWarningService {
+    void saveDustAlarm(DustAlarm dustAlarm); // 경보 내역 저장
+    void saveInspection(InspectionHistory inspectionHistory); // 측정소별 점검 내역 저장
 }

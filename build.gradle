@@ -30,6 +30,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 	runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
 	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+	implementation group: 'org.springframework.boot', name: 'spring-boot-starter-quartz', version: '2.3.2.RELEASE'
 }
 
 tasks.named('test') {

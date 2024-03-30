@@ -7,6 +7,8 @@ import jsj.finedustalarm.Entity.AlarmData;
 import jsj.finedustalarm.Entity.DustAlarm;
 import jsj.finedustalarm.Entity.InspectionHistory;
 import jsj.finedustalarm.Service.DustWarningServiceImpl;
+import jsj.finedustalarm.Utils.AlarmCriteria;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 
 import java.io.BufferedReader;
@@ -23,63 +25,87 @@ public class DustWarningController {
 
     public DustWarningController(DustWarningServiceImpl dustWarningService) {
         this.dustWarningService = dustWarningService;
-        getJsonData();
+        checkReport(getJsonData());
     }
 
-    public void getJsonData() {
-        System.out.println("DustWarningController.getJsonData");
-        try (BufferedReader reader = new BufferedReader(new FileReader(Main.class.getClassLoader().getResource("Seoul_Dust_Report_March.json").getPath()))) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.registerModule(new JavaTimeModule());
-            AlarmData[] alarmData = objectMapper.readValue(reader, AlarmData[].class);
+    @Scheduled(fixedDelay = 5000)
+    public void test() {
+        System.out.println(
+                "Fixed delay task - " + System.currentTimeMillis() / 1000);
+    }
 
-            int previousDay = getInspectDate(alarmData[0]).getDayOfYear();
-            LocalDateTime inspectDate, sameDate;
+    private void checkReport(AlarmData[] alarmData) {
 
-            // 측정된 데이터가 없는 경우
-            for (int i = 0; i < alarmData.length; i++) {
-                inspectDate = getInspectDate(alarmData[i]);
-                if (alarmData[i].getPm10() == 0 && alarmData[i].getPm2_5() == 0) {
-                    for (int j = 0; j < alarmData.length; j++) {
-                        sameDate = getInspectDate(alarmData[j]);
-                        if (alarmData[i].getStationCode().equals(alarmData[j].getStationCode())
-                                && inspectDate.getDayOfYear() == sameDate.getDayOfYear()) {
-                            // 해당 일자의 점검 내역 insert
-                            reportInspection(alarmData[j]);
-                        }
-                    }
-                }
-            }
+        int previousDay = getDayOfYear(alarmData[0]);
+        int inspectDate, compareDate;
+
+        for (int i = 0; i < alarmData.length; i++) {
+            inspectDate = getDayOfYear(alarmData[i]);
 
             // 경보 발령 기준을 충족하는 경우
-            for (int i = 1; i < alarmData.length; i++) {
-                inspectDate = getInspectDate(alarmData[i]);
-
-                if (((int) inspectDate.getDayOfYear() == previousDay)) {
+            if (i > 0) {
+                if ((inspectDate == previousDay)) {
                     if (isAlarmed) {
                         // 경보가 이미 울렸으면 나머지 시간은 건너뛴다
                         continue;
                     }
                 } else {
-                    previousDay = (int) inspectDate.getDayOfYear();
+                    previousDay = inspectDate;
                     isAlarmed = false;
                 }
 
-                if (alarmData[i - 1].getPm2_5() >= 150 && alarmData[i].getPm2_5() >= 150) {
-                    reportWarning(1, alarmData[i]);
-                } else if (alarmData[i - 1].getPm10() >= 300 && alarmData[i].getPm10() >= 300) {
-                    reportWarning(2, alarmData[i]);
-                } else if (alarmData[i - 1].getPm2_5() >= 75 && alarmData[i].getPm2_5() >= 75) {
-                    reportWarning(3, alarmData[i]);
-                } else if (alarmData[i - 1].getPm10() >= 150 && alarmData[i].getPm10() >= 150) {
-                    reportWarning(4, alarmData[i]);
+                if (isWarning(alarmData[i - 1], alarmData[i])) {
+                    reportWarning(getWarningType(alarmData[i - 1], alarmData[i]), alarmData[i]);
                 }
             }
+
+            // 측정된 데이터가 없는 경우
+            if (alarmData[i].getPm10() == 0 && alarmData[i].getPm2_5() == 0) {
+                for (int j = 0; j < alarmData.length; j++) {
+                    compareDate = getDayOfYear(alarmData[j]);
+                    if (alarmData[i].getStationCode().equals(alarmData[j].getStationCode())
+                            && inspectDate == compareDate) {
+                        // 해당 일자의 점검 내역 insert
+                        reportInspection(alarmData[j]);
+                    }
+                }
+            }
+        }
+    }
+
+    public AlarmData[] getJsonData() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(Main.class.getClassLoader().getResource("Seoul_Dust_Report_March.json").getPath()))) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            AlarmData[] alarmData = objectMapper.readValue(reader, AlarmData[].class);
+        return alarmData;
         } catch (
                 IOException e) {
             throw new RuntimeException(e);
         }
+    }
 
+    private boolean isWarning(AlarmData previous, AlarmData current) {
+        return (previous.getPm2_5() >= AlarmCriteria.PM2_5_WARNING_VALUE && current.getPm2_5() >= AlarmCriteria.PM2_5_WARNING_VALUE) ||
+                (previous.getPm10() >= AlarmCriteria.PM10_WARNING_VALUE && current.getPm10() >= AlarmCriteria.PM10_WARNING_VALUE) ||
+                (previous.getPm2_5() >= AlarmCriteria.PM2_5_ADVISORY_VALUE && current.getPm2_5() >= AlarmCriteria.PM2_5_ADVISORY_VALUE) ||
+                (previous.getPm10() >= AlarmCriteria.PM10_ADVISORY_VALUE && current.getPm10() >= AlarmCriteria.PM10_ADVISORY_VALUE);
+    }
+
+    private int getWarningType(AlarmData previous, AlarmData current) {
+        if (previous.getPm2_5() >= AlarmCriteria.PM2_5_WARNING_VALUE && current.getPm2_5() >= AlarmCriteria.PM2_5_WARNING_VALUE) {
+            return 1;
+        } else if (previous.getPm10() >= AlarmCriteria.PM10_WARNING_VALUE && current.getPm10() >= AlarmCriteria.PM10_WARNING_VALUE) {
+            return 2;
+        } else if (previous.getPm2_5() >= AlarmCriteria.PM2_5_ADVISORY_VALUE && current.getPm2_5() >= AlarmCriteria.PM2_5_ADVISORY_VALUE) {
+            return 3;
+        } else {
+            // previous.getPm10() >= AlarmCriteria.PM10_ADVISORY_VALUE && current.getPm10() >= AlarmCriteria.PM10_ADVISORY_VALUE
+            return 4;
+        }
+    }
+
+    private static int getDayOfYear(AlarmData alarmData) {
+        return getInspectDate(alarmData).getDayOfYear();
     }
 
     private static LocalDateTime getInspectDate(AlarmData alarmData) {

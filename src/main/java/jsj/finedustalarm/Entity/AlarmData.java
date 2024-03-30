@@ -4,9 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+
 /*
-* Json 데이터 처리용
-* */
+ * Json 데이터 처리용
+ * */
 @Data
 public class AlarmData {
 

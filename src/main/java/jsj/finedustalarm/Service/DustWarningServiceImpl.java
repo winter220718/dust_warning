@@ -7,9 +7,12 @@ import jsj.finedustalarm.Repository.InspectionHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
-public class DustWarningServiceImpl implements DustWarningService{
+public class DustWarningServiceImpl implements DustWarningService {
 
     private final DustAlarmRepository dustAlarmRepository;
     private final InspectionHistoryRepository inspectionHistoryRepository;
@@ -17,6 +20,11 @@ public class DustWarningServiceImpl implements DustWarningService{
     @Override
     public void saveDustAlarm(DustAlarm dustAlarm) {
         dustAlarmRepository.save(dustAlarm);
+    }
+
+    @Override
+    public List<DustAlarm> searchByDate(LocalDateTime localDateTime) {
+        return dustAlarmRepository.findDustAlarmByInspectDate(localDateTime);
     }
 
     @Override

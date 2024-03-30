@@ -1,19 +1,20 @@
 package jsj.finedustalarm.Controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.sun.tools.javac.Main;
 import jsj.finedustalarm.Entity.AlarmData;
 import jsj.finedustalarm.Entity.DustAlarm;
 import jsj.finedustalarm.Entity.InspectionHistory;
 import jsj.finedustalarm.Service.DustWarningServiceImpl;
 import jsj.finedustalarm.Utils.AlarmCriteria;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -23,15 +24,9 @@ public class DustWarningController {
     private final DustWarningServiceImpl dustWarningService;
     private boolean isAlarmed = false;
 
-    public DustWarningController(DustWarningServiceImpl dustWarningService) {
+    public DustWarningController(DustWarningServiceImpl dustWarningService) throws URISyntaxException {
         this.dustWarningService = dustWarningService;
         checkReport(getJsonData());
-    }
-
-    @Scheduled(fixedDelay = 5000)
-    public void test() {
-        System.out.println(
-                "Fixed delay task - " + System.currentTimeMillis() / 1000);
     }
 
     private void checkReport(AlarmData[] alarmData) {
@@ -77,7 +72,7 @@ public class DustWarningController {
         try (BufferedReader reader = new BufferedReader(new FileReader(Main.class.getClassLoader().getResource("Seoul_Dust_Report_March.json").getPath()))) {
             ObjectMapper objectMapper = new ObjectMapper();
             AlarmData[] alarmData = objectMapper.readValue(reader, AlarmData[].class);
-        return alarmData;
+            return alarmData;
         } catch (
                 IOException e) {
             throw new RuntimeException(e);
@@ -126,6 +121,7 @@ public class DustWarningController {
         dustAlarm.setAlertGrade(alertGrade);
         dustAlarm.setInspectDate(getInspectDate(alarmData));
         dustAlarm.setStationCode(alarmData.getStationCode());
+        dustAlarm.setStationName(alarmData.getStationName());
         isAlarmed = true;
         dustWarningService.saveDustAlarm(dustAlarm);
     }

@@ -1,6 +1,6 @@
 ## 📜 경보 단계 발령 시스템
 
-> Java<br>
+> Java 17<br>
 Oracle 11g<br>
 Spring Boot v3.2.4, IntelliJ IDEA 2023.3.4<br>
 

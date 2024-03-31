@@ -17,15 +17,5 @@ spring:
         format_sql: true
         default_batch_fetch_size: 1000 #??? ??
 
-#
----
-spring:
-  config:
-    activate:
-      on-profile:
-        - dev
-  datasource:
-    driver-class-name: oracle.jdbc.driver.OracleDriver
-    url: jdbc:oracle:thin:host.docker.internal:1521:XE
-    username: dust
-    password: 1234
+server:
+  port: 8080

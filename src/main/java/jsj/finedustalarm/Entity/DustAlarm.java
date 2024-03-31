@@ -19,12 +19,12 @@ public class DustAlarm {
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @Id
-    @Column(name = "INSPECT_DATE", nullable = false)
+    @Column(name = "INSPECT_DATE")
     private LocalDateTime inspectDate;
 
     // 측정소 코드
     @Id
-    @Column(name = "STATION_CODE", nullable = false)
+    @Column(name = "STATION_CODE")
     private String stationCode;
 
     //측정소명
